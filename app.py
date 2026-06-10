@@ -1,6 +1,7 @@
 import time
 
 from logger import logger
+
 from config import (
     ENGINE_NAME,
     SCAN_INTERVAL,
@@ -25,7 +26,8 @@ from execution import execute_signal
 
 from telegram_bot import (
     send_public_signal,
-    send_vip_signal
+    send_vip_signal,
+    send_message
 )
 
 from mt5_connector import initialize_mt5
@@ -79,6 +81,28 @@ try:
 except Exception as e:
     logger.error(f"❌ MT5 INITIALIZATION FAILED: {e}")
 
+
+# =====================================================
+# OPTIONAL TELEGRAM STARTUP TEST
+# =====================================================
+
+try:
+    logger.info("🚀 TESTING TELEGRAM PUBLIC + VIP")
+
+    send_message(
+        PUBLIC_CHAT_ID,
+        "✅ SNIPER FOREX ENGINE ONLINE - PUBLIC CHANNEL"
+    )
+
+    send_message(
+        VIP_CHAT_ID,
+        "✅ SNIPER FOREX ENGINE ONLINE - VIP CHANNEL"
+    )
+
+except Exception as e:
+    logger.error(f"❌ TELEGRAM STARTUP TEST FAILED: {e}")
+
+
 # =====================================================
 # HELPERS
 # =====================================================
@@ -88,34 +112,25 @@ def get_clean_win_rate():
         stats = get_statistics()
 
         if isinstance(stats, dict):
-            return stats.get(
-                "win_rate",
-                0
-            )
+            return stats.get("win_rate", 0)
 
         return 0
 
     except Exception as e:
-        logger.error(
-            f"❌ FOREX WIN RATE LOAD ERROR: {e}"
-        )
-
+        logger.error(f"❌ FOREX WIN RATE LOAD ERROR: {e}")
         return 0
 
 
 def process_signal(signal, clean_win_rate):
     try:
-        symbol = signal.get("symbol")
-        direction = signal.get("direction")
+        symbol = signal.get("symbol", "UNKNOWN")
+        direction = signal.get("direction", "UNKNOWN")
 
         logger.info(
-            f"⚙️ PROCESSING FOREX SIGNAL: "
-            f"{symbol} {direction}"
+            f"⚙️ PROCESSING FOREX SIGNAL: {symbol} {direction}"
         )
 
-        execution_result = execute_signal(
-            signal
-        )
+        execution_result = execute_signal(signal)
 
         saved = save_signal(
             signal,
@@ -124,19 +139,17 @@ def process_signal(signal, clean_win_rate):
 
         if saved:
             logger.info(
-                f"✅ FOREX SIGNAL SAVED TO DATABASE: "
-                f"{symbol} {direction}"
+                f"✅ FOREX SIGNAL SAVED TO DATABASE: {symbol} {direction}"
             )
         else:
             logger.error(
-                f"❌ FOREX SIGNAL NOT SAVED TO DATABASE: "
-                f"{symbol} {direction}"
+                f"❌ FOREX SIGNAL NOT SAVED TO DATABASE: {symbol} {direction}"
             )
 
-        send_public_signal(
-            signal
-        )
+        logger.info("📤 SENDING PUBLIC SIGNAL")
+        send_public_signal(signal)
 
+        logger.info("📤 SENDING VIP SIGNAL")
         send_vip_signal(
             signal,
             clean_win_rate
@@ -152,9 +165,7 @@ def process_signal(signal, clean_win_rate):
         )
 
     except Exception as e:
-        logger.error(
-            f"❌ FOREX SIGNAL PROCESS ERROR: {e}"
-        )
+        logger.error(f"❌ FOREX SIGNAL PROCESS ERROR: {e}")
 
 
 # =====================================================
@@ -185,6 +196,7 @@ while True:
 
         try:
             monitor_signals()
+
         except Exception as monitor_error:
             logger.error(
                 f"❌ FOREX MONITOR ERROR FROM APP: {monitor_error}"
@@ -194,9 +206,7 @@ while True:
             f"⏳ FOREX SLEEPING {SCAN_INTERVAL} SECONDS"
         )
 
-        time.sleep(
-            SCAN_INTERVAL
-        )
+        time.sleep(SCAN_INTERVAL)
 
     except Exception as main_error:
         logger.error(
