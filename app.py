@@ -26,8 +26,7 @@ from execution import execute_signal
 
 from telegram_bot import (
     send_public_signal,
-    send_vip_signal,
-    send_message
+    send_vip_signal
 )
 
 from mt5_connector import initialize_mt5
@@ -80,27 +79,6 @@ try:
     initialize_mt5()
 except Exception as e:
     logger.error(f"❌ MT5 INITIALIZATION FAILED: {e}")
-
-
-# =====================================================
-# OPTIONAL TELEGRAM STARTUP TEST
-# =====================================================
-
-try:
-    logger.info("🚀 TESTING TELEGRAM PUBLIC + VIP")
-
-    send_message(
-        PUBLIC_CHAT_ID,
-        "✅ SNIPER FOREX ENGINE ONLINE - PUBLIC CHANNEL"
-    )
-
-    send_message(
-        VIP_CHAT_ID,
-        "✅ SNIPER FOREX ENGINE ONLINE - VIP CHANNEL"
-    )
-
-except Exception as e:
-    logger.error(f"❌ TELEGRAM STARTUP TEST FAILED: {e}")
 
 
 # =====================================================
