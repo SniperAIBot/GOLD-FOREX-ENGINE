@@ -79,15 +79,6 @@ try:
 except Exception as e:
     logger.error(f"❌ MT5 INITIALIZATION FAILED: {e}")
 
-from telegram_bot import send_message
-from config import PUBLIC_CHAT_ID, VIP_CHAT_ID
-
-print("🚀 TESTING TELEGRAM")
-
-send_message(PUBLIC_CHAT_ID, "✅ SNIPER FOREX ENGINE TEST MESSAGE - PUBLIC CHANNEL")
-
-send_message(VIP_CHAT_ID, "✅ SNIPER FOREX ENGINE TEST MESSAGE - VIP CHANNEL")
-
 # =====================================================
 # HELPERS
 # =====================================================
