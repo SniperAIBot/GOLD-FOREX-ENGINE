@@ -5,4 +5,4 @@ psycopg2-binary
 streamlit
 plotly
 python-dotenv
-oandapyV20
+MetaTrader5

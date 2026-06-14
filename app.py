@@ -1,7 +1,6 @@
 import time
 
 from logger import logger
-
 from config import (
     ENGINE_NAME,
     SCAN_INTERVAL,
@@ -12,24 +11,15 @@ from config import (
     DATA_PROVIDER,
     EXECUTION_MODE,
     ENABLE_LIVE_TRADING,
-    OANDA_ENV,
-    OANDA_ACCOUNT_ID
 )
 
-from database import (
-    initialize_database,
-    save_signal
-)
-
+from database import initialize_database, save_signal
 from scanner import scan_market
 from monitor import monitor_signals
 from performance import get_statistics
 from execution import execute_signal
-
-from telegram_bot import (
-    send_public_signal,
-    send_vip_signal
-)
+from telegram_bot import send_public_signal, send_vip_signal
+from mt5_connector import initialize_mt5
 
 
 logger.info("========================================")
@@ -39,7 +29,6 @@ logger.info("========================================")
 logger.info(f"📡 DATA_PROVIDER={DATA_PROVIDER}")
 logger.info(f"🧪 EXECUTION_MODE={EXECUTION_MODE}")
 logger.info(f"🧪 ENABLE_LIVE_TRADING={ENABLE_LIVE_TRADING}")
-logger.info(f"🌍 OANDA_ENV={OANDA_ENV}")
 
 if DATABASE_URL:
     logger.info("✅ DATABASE_URL DETECTED")
@@ -61,16 +50,17 @@ if VIP_CHAT_ID:
 else:
     logger.error("❌ VIP_CHAT_ID IS MISSING")
 
-if OANDA_ACCOUNT_ID:
-    logger.info("✅ OANDA_ACCOUNT_ID DETECTED")
-else:
-    logger.warning("⚠️ OANDA_ACCOUNT_ID IS MISSING")
-
 
 try:
     initialize_database()
 except Exception as e:
     logger.error(f"❌ DATABASE INITIALIZATION FAILED: {e}")
+
+
+try:
+    initialize_mt5()
+except Exception as e:
+    logger.error(f"❌ MT5 INITIALIZATION FAILED: {e}")
 
 
 def get_clean_win_rate():
@@ -92,25 +82,22 @@ def process_signal(signal, clean_win_rate):
         symbol = signal.get("symbol", "UNKNOWN")
         direction = signal.get("direction", "UNKNOWN")
 
-        logger.info(f"⚙️ PROCESSING FOREX SIGNAL: {symbol} {direction}")
+        logger.info(f"⚙️ PROCESSING MT5 SIGNAL: {symbol} {direction}")
 
         execution_result = execute_signal(signal)
 
         saved = save_signal(signal, execution_result)
 
         if saved:
-            logger.info(f"✅ FOREX SIGNAL SAVED TO DATABASE: {symbol} {direction}")
+            logger.info(f"✅ SIGNAL SAVED TO DATABASE: {symbol} {direction}")
         else:
-            logger.error(f"❌ FOREX SIGNAL NOT SAVED TO DATABASE: {symbol} {direction}")
+            logger.error(f"❌ SIGNAL NOT SAVED TO DATABASE: {symbol} {direction}")
 
-        logger.info("📤 SENDING PUBLIC SIGNAL")
         send_public_signal(signal)
-
-        logger.info("📤 SENDING VIP SIGNAL")
         send_vip_signal(signal, clean_win_rate)
 
         logger.info(
-            f"✅ FOREX SIGNAL PROCESSED: "
+            f"✅ SIGNAL PROCESSED: "
             f"{symbol} "
             f"{direction} "
             f"WIN_RATE={clean_win_rate}% "
@@ -119,18 +106,18 @@ def process_signal(signal, clean_win_rate):
         )
 
     except Exception as e:
-        logger.error(f"❌ FOREX SIGNAL PROCESS ERROR: {e}")
+        logger.error(f"❌ SIGNAL PROCESS ERROR: {e}")
 
 
 while True:
     try:
         logger.info("========================================")
-        logger.info("🔍 FOREX SCANNING REAL MARKET DATA")
+        logger.info("🔍 SCANNING MT5 REAL MARKET DATA")
         logger.info("========================================")
 
         signals = scan_market()
 
-        logger.info(f"📊 FOREX APP RECEIVED {len(signals)} SIGNALS")
+        logger.info(f"📊 APP RECEIVED {len(signals)} SIGNALS")
 
         clean_win_rate = get_clean_win_rate()
 
@@ -138,17 +125,12 @@ while True:
             process_signal(signal, clean_win_rate)
             time.sleep(1)
 
-        try:
-            monitor_signals()
+        monitor_signals()
 
-        except Exception as monitor_error:
-            logger.error(f"❌ FOREX MONITOR ERROR FROM APP: {monitor_error}")
-
-        logger.info(f"⏳ FOREX SLEEPING {SCAN_INTERVAL} SECONDS")
-
+        logger.info(f"⏳ SLEEPING {SCAN_INTERVAL} SECONDS")
         time.sleep(SCAN_INTERVAL)
 
     except Exception as main_error:
-        logger.error(f"❌ FOREX MAIN LOOP ERROR: {main_error}")
-        logger.info("⏳ FOREX RECOVERING IN 60 SECONDS")
+        logger.error(f"❌ MAIN LOOP ERROR: {main_error}")
+        logger.info("⏳ RECOVERING IN 60 SECONDS")
         time.sleep(60)
